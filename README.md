@@ -39,11 +39,12 @@ machine:
 | I have… | Best option | Needs |
 | --- | --- | --- |
 | 🖥️ **Windows 10 or 11** | [**Microsoft Store app**](https://apps.microsoft.com/store/detail/9N4D0GW2XZ37?cid=DevShareMCLPCS) | nothing else |
-| 🐳 **Windows, Mac, Linux, NAS or VPS** | [**Docker Compose**](#any-os-with-docker-windows-mac-linux-nas-vps) | Docker |
+| 🐳 **Docker host, NAS or VPS** | [**One-command Docker Compose install**](#one-click-install) | Docker |
 | 🏠 **CasaOS / ZimaOS box** | [**CasaOS app**](casaos/README.md) | nothing else |
 
-These are the supported ways to install NodeDR POS. The standalone macOS and
-Linux desktop downloads have been removed. For Mac and Linux, use Docker Compose.
+These are the supported ways to install NodeDR POS. Standalone Windows, macOS,
+and Linux installer downloads are not distributed. Use Docker Compose on Mac
+or Linux.
 
 ### Any OS with Docker (Windows, Mac, Linux, NAS, VPS)
 
@@ -53,12 +54,8 @@ Linux desktop downloads have been removed. For Mac and Linux, use Docker Compose
      [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/).
    - Mac: [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/).
    - Linux: [Docker Engine](https://docs.docker.com/engine/install/) with the Compose plugin.
-2. **Get and start the app:**
-   ```bash
-   git clone https://github.com/Raktim94/nodedr-pos.git
-   cd nodedr-pos
-   docker compose up -d --build
-   ```
+2. **Get and start the app:** paste the [one-command installer](#one-click-install)
+   into a terminal.
 3. Open <http://localhost:1994>. Stop with `docker compose down` (data is kept in the
    `nodedr-pos_data` volume). Update from the app: see [Updating](#updating).
 
