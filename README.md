@@ -38,31 +38,12 @@ machine:
 
 | I have… | Best option | Needs |
 | --- | --- | --- |
-| 🖥️ **Windows, Linux, a NAS or a VPS** | [**Docker Compose**](#any-os-with-docker-windows-mac-linux-nas-vps) | Docker |
+| 🖥️ **Windows 10 or 11** | [**Microsoft Store app**](https://apps.microsoft.com/store/detail/9N4D0GW2XZ37?cid=DevShareMCLPCS) | nothing else |
+| 🐳 **Windows, Mac, Linux, NAS or VPS** | [**Docker Compose**](#any-os-with-docker-windows-mac-linux-nas-vps) | Docker |
 | 🏠 **CasaOS / ZimaOS box** | [**CasaOS app**](casaos/README.md) | nothing else |
-| 🍎 **Mac** | [**macOS app (.dmg)**](#macos) or Docker | — / Docker |
 
-> The native Windows `.exe` and Debian/Ubuntu `.deb` installers were retired —
-> Docker (or CasaOS) is the supported way to run NodeDR POS on those systems,
-> because it can **update itself with one click** (see
-> [Updating](#updating)).
-
-### macOS
-
-1. Download the `.dmg` for your Mac (**Apple silicon** = `arm64`, **Intel** = `x64`)
-   from the [Releases](https://github.com/Raktim94/nodedr-pos/releases) page
-   (or build it yourself: *Actions → "Build macOS app (.dmg)" → Run workflow*).
-2. Open the `.dmg` and drag **NodeDR POS** into **Applications**.
-3. First launch: **right-click → Open** (the app isn't notarised yet, so
-   Gatekeeper asks once). A small icon appears in the menu bar and your browser
-   opens <http://localhost:1994>.
-4. The app brings its own runtime — **no Docker needed**. Data is kept in
-   `~/Library/Application Support/NodeDR POS`. To start at login, copy
-   [`packaging/macos/com.nodedr.pos.plist`](packaging/macos/com.nodedr.pos.plist)
-   to `~/Library/LaunchAgents/`.
-
-> The macOS app is new and has not yet been run on a Mac by the project — if
-> anything misbehaves, use Docker below and please open an issue.
+These are the supported ways to install NodeDR POS. The standalone macOS and
+Linux desktop downloads have been removed. For Mac and Linux, use Docker Compose.
 
 ### Any OS with Docker (Windows, Mac, Linux, NAS, VPS)
 
@@ -76,7 +57,7 @@ machine:
    ```bash
    git clone https://github.com/Raktim94/nodedr-pos.git
    cd nodedr-pos
-   ./install.sh          # no Git Bash on Windows? run: docker compose up -d --build
+   docker compose up -d --build
    ```
 3. Open <http://localhost:1994>. Stop with `docker compose down` (data is kept in the
    `nodedr-pos_data` volume). Update from the app: see [Updating](#updating).
@@ -120,7 +101,10 @@ your own in `.env` on a public server). To update by hand instead:
 Printers, barcode scanners and other hardware: [Hardware setup](#hardware-setup).
 What is verified and what still needs real-device testing: [docs/ROADMAP.md](docs/ROADMAP.md).
 
-## Screenshots
+## Screenshots and tutorial
+
+See the [step-by-step NodeDR POS tutorial](TUTORIAL.md) for setup, inventory,
+checkout, reports, invoices, and warranty workflows.
 
 | Dashboard | POS checkout (weighed item + UPI QR) |
 | --- | --- |
@@ -206,8 +190,8 @@ orders and check warranty · A4 tax-invoice PDFs with your authorised signature 
 UPI QR · UPI QR / multi-currency / card-terminal payments · profit, category and
 hourly-sales reports with GSTR-1 exports · suppliers & purchase orders · shifts and
 granular staff permissions · online-orders board for e-commerce orders, customer loyalty page ·
-WooCommerce/Shopify order sync · optional self-hosted multi-branch sync · menu-bar/tray
-icon and a macOS app · a redesigned light forest-green UI.
+WooCommerce/Shopify order sync · optional self-hosted multi-branch sync · an
+optional desktop tray helper · a redesigned light forest-green UI.
 
 Per-item status (what is verified and what still needs real hardware or accounts):
 [docs/ROADMAP.md](docs/ROADMAP.md). API and MCP reference: [docs/API.md](docs/API.md).
@@ -337,7 +321,9 @@ The backend and frontend are two separate containers, neither of which needs
 elevated privileges or host device access — everything still comes up with a
 single `docker compose up`.
 
-**The macOS app runs the same two-process split natively** (no Docker), each process supervised and restarted. See [Install](#install) for which install method fits your till.
+The Windows Store app runs the same two-process split natively. Docker Compose
+deployments use separate frontend and backend containers, each supervised and
+updated independently.
 
 ## Tech stack
 
@@ -971,7 +957,7 @@ nodedr-pos/
 ├── docker-compose.yml         # declares the nodedr-pos_data named volume
 ├── docs/screenshots/          # README images
 ├── casaos/                    # CasaOS/ZimaOS app store manifest + assets — see casaos/README.md
-├── packaging/                 # macOS app (.dmg) + shared tray helper
+├── packaging/                 # optional desktop tray helper
 ├── backend/
 │   ├── Dockerfile
 │   ├── prisma/schema.prisma  # User, ShopSettings, Product, Invoice, InvoiceItem, Return

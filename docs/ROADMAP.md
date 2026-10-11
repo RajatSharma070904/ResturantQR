@@ -8,8 +8,6 @@ service from the development environment — pilot it before relying on it.
 
 | Area | Item | Status |
 | --- | --- | --- |
-| **v1.1 Desktop** | System tray icon (status, open, restart) — Windows, Linux, macOS | Code + unit tests. GUI not exercised on a real desktop. Bundled into the macOS app and the `.deb`; for Windows run `node packaging/tray/tray.js` (not yet in the NSIS installer) |
-| | macOS `.dmg` | Build script + CI workflow. Must be built on macOS (GitHub Actions). Bundles its own Node runtime — **no Docker needed** (Docker Desktop can't be redistributed). Unsigned unless signing secrets are set |
 | **v1.2 Payments** | Dynamic UPI QR at checkout (+ on A4 invoice for balance due) | Verified |
 | | WhatsApp receipt sharing | Verified (wa.me link + signed PDF link; no WhatsApp Business account needed) |
 | | Multi-currency sale (server-side rates, manual or live) | Verified |

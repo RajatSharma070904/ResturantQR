@@ -1,7 +1,6 @@
 # Native packaging
 
-Only the **macOS app** (`macos/`, built by `.github/workflows/build-macos-dmg.yml`)
-and the tray helper it bundles (`tray/`) live here. The Windows `.exe` and
-Debian `.deb` installers were retired: on Windows and Linux, run NodeDR POS
-with Docker Compose or CasaOS, which can update themselves from
-**Settings → Updates**.
+The standalone macOS desktop package has been retired. The tray helper in
+`tray/` remains available to supported desktop environments. Install NodeDR
+POS from the Microsoft Store on Windows, or use Docker Compose or the CasaOS
+app on Windows, macOS, Linux, NAS, or a VPS.
