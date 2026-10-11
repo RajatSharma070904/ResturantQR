@@ -12,10 +12,10 @@
 
 **[Try NodeDR POS](https://pos.nodedr.com/)** · **[Case study](https://www.raktimranjit.com/projects/nodedr-pos)** · **[Maintainer: Raktim Ranjit](https://www.raktimranjit.com/)**
 
-A free, open-source, **offline-first** Point of Sale and inventory
-management system for small retail shops. It runs entirely via Docker
-Compose, so by default it lives on a machine in the shop — no internet
-connection required, no subscription, no data ever leaving the premises.
+A free, open-source, **offline-first** point-of-sale and inventory
+management system for small retail shops. It runs on a machine in your shop
+with Docker Compose, so normal checkout and inventory work without an internet
+connection or subscription. Your data stays on that machine by default.
 It's also just a portable two-container stack, so if you'd rather manage
 it remotely, the identical setup runs on any VPS/cloud provider too — see
 [Where to run it](#where-to-run-it) for the trade-offs either way.
@@ -46,24 +46,36 @@ These are the supported ways to install NodeDR POS. Standalone Windows, macOS,
 and Linux installer downloads are not distributed. Use Docker Compose on Mac
 or Linux.
 
-### Any OS with Docker (Windows, Mac, Linux, NAS, VPS)
+### One-command install (Windows, macOS, or Linux)
 
-1. **Install Docker**
-   - Windows: first enable WSL 2 — [Microsoft's guide](https://learn.microsoft.com/windows/wsl/install)
-     (`wsl --install` in an administrator PowerShell, then restart) — then
-     [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/).
-   - Mac: [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/).
-   - Linux: [Docker Engine](https://docs.docker.com/engine/install/) with the Compose plugin.
-2. **Get and start the app:** paste the [one-command installer](#one-click-install)
-   into a terminal.
-3. Open <http://localhost:1994>. Stop with `docker compose down` (data is kept in the
-   `nodedr-pos_data` volume). Update from the app: see [Updating](#updating).
+Paste the command for your terminal. The quickstart checks requirements,
+installs Docker where supported if it is missing, then downloads and starts
+NodeDR POS. On first use, Windows may ask for one restart while it enables
+WSL2; run the same command again after restarting.
 
-On a **VPS with a domain**, copy `.env.example` to `.env`, set
+**Windows PowerShell**
+
+```powershell
+irm https://raw.githubusercontent.com/Raktim94/nodedr-pos/master/scripts/quickstart.ps1 | iex
+```
+
+**macOS / Linux Terminal**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Raktim94/nodedr-pos/master/scripts/quickstart.sh | bash
+```
+
+When installation finishes, open <http://localhost:1994>. On another phone,
+tablet, or computer on the same Wi-Fi, open `http://<computer-ip>:1994` using
+the address of the machine running NodeDR POS. On Linux, the installer may
+need `sudo` to install Docker. On macOS, Homebrew is needed if Docker is not
+already installed. The Microsoft Store and CasaOS app remain the simplest
+options for those platforms.
+
+For a VPS, copy `.env.example` to `.env`, set
 `FRONTEND_ORIGIN=https://pos.yourdomain.com`, `COOKIE_SECURE=true` and
-`PUBLIC_BASE_URL=https://pos.yourdomain.com`, and put HTTPS in front
-(see [Where to run it](#where-to-run-it)). The step-by-step Docker commands are
-also listed under [Quick start](#quick-start).
+`PUBLIC_BASE_URL=https://pos.yourdomain.com`, and put HTTPS in front of the
+app (see [Where to run it](#where-to-run-it)).
 
 ### Updating
 
@@ -98,38 +110,118 @@ your own in `.env` on a public server). To update by hand instead:
 Printers, barcode scanners and other hardware: [Hardware setup](#hardware-setup).
 What is verified and what still needs real-device testing: [docs/ROADMAP.md](docs/ROADMAP.md).
 
-## Screenshots and tutorial
+## How to use NodeDR POS
 
-See the [step-by-step NodeDR POS tutorial](TUTORIAL.md) for setup, inventory,
-checkout, reports, invoices, and warranty workflows.
+Start at the dashboard, then follow this workflow. The [full step-by-step
+tutorial](TUTORIAL.md) includes the complete setup guide and screenshot gallery.
 
-| Dashboard | POS checkout (weighed item + UPI QR) |
+### 1. Create your shop
+
+On first launch, create an administrator account with your name, email, and a
+strong password. Enter your shop name and address, then choose the currency and
+tax options that fit your business. Finish setup to open the dashboard. Company
+and tax details can be changed later in **Settings**.
+
+![NodeDR POS dashboard showing sales, inventory alerts, and online orders](docs/screenshots/dashboard.png)
+
+### 2. Add products and set stock
+
+Open **Inventory → Add product**. Enter the product name, cost and selling
+prices, opening stock, and reorder level. Add a SKU, scan an existing barcode,
+or use **Generate** when an item has no barcode. Set a category and tax rate
+where applicable, then save. Products are then ready for checkout. Use CSV or
+Excel import for a larger catalogue.
+
+![Inventory list with product quantities](docs/screenshots/inventory.png)
+
+![Add-product form with barcode scan and generate options](docs/screenshots/add-product.png)
+
+Optional product features include weighted items and IMEI/serial tracking.
+Turn on IMEI tracking in **Settings → Features** if you sell phones, laptops,
+or appliances. It is off by default. When enabled, enter the identifier of
+each unit at checkout; there is no need to register identifiers in stock first.
+
+![Settings with optional IMEI tracking](docs/screenshots/features.png)
+
+### 3. Complete a sale
+
+Open **POS Checkout**, scan a barcode or search for a product, and add it to
+the cart. Scan again or adjust quantity to sell multiple units. Review the
+items and total, optionally attach a customer, choose an available payment
+method, enter the amount received, and complete the sale. From the confirmation
+you can print a receipt or download a PDF. Past invoices are available in
+**Sales** for review and reprinting.
+
+![POS checkout with a weighed item and payment QR](docs/screenshots/pos.png)
+
+For IMEI-tracked items, checkout asks for each unit's identifier and the bill
+can include its warranty details.
+
+![IMEI captured during checkout](docs/screenshots/imei-sale.png)
+
+### 4. Manage customers, suppliers, and orders
+
+- **Customers:** add and search customer records, link them to sales, and
+  share a loyalty page when needed.
+- **Purchasing:** add suppliers, create and review purchase orders, and use
+  **Reorder** suggestions. Products appear there when stock reaches their
+  configured reorder level.
+- **Online orders:** connected website orders move through **New**, **Packing**,
+  **Ready**, and **Collected**. Connect WooCommerce or Shopify in
+  **Settings → Online stores**, or connect a custom website using the
+  [API guide](docs/CUSTOM_STORE.md). Products are matched by SKU. Orders paid
+  online can be handed over; pay-at-pickup orders can be billed at collection.
+- **Team:** administrators can add staff accounts and assign access roles.
+
+![Online orders board with New, Packing, Ready, and Collected columns](docs/screenshots/orders.png)
+
+### 5. Review reports, invoices, and warranty
+
+In **Reports**, choose 7, 30, or 90 days to review revenue, gross profit,
+average bill, category sales, hourly trends, and top products. Tax summaries
+are available as CSV; review tax figures with your accountant before filing.
+Configure **Settings → Receipt** for receipt details and **Settings → Invoice
+& signature** for A4 invoices and the shop signature.
+
+![Reports with revenue, margin, category, and hourly trends](docs/screenshots/reports.png)
+
+![A4 tax invoice with warranty table and signature](docs/screenshots/invoice-a4.png)
+
+When serial tracking is enabled, open **Warranty** and scan or enter an
+identifier to find its sale and warranty status.
+
+![Warranty lookup showing sale date and warranty status](docs/screenshots/warranty.png)
+
+### Back up and update
+
+Docker Compose and CasaOS installations store app data in persistent Docker
+storage. Back it up regularly. Use the in-product updater when an update is
+available, or update a manual Compose installation with
+`docker compose pull && docker compose up -d`. See [Backing up your data](#backing-up-your-data)
+and [Updating](#updating) for details.
+
+### Screenshot gallery
+
+All tutorial screenshots are in [`docs/screenshots/`](docs/screenshots/):
+
+| App screen | Screenshot |
 | --- | --- |
-| ![Dashboard: today's revenue, 14-day chart, low stock, online orders](docs/screenshots/dashboard.png) | ![POS: cart with a weighed item and a dynamic UPI QR](docs/screenshots/pos.png) |
-
-| Online orders (from your e-commerce store) | Reports |
-| --- | --- |
-| ![Board: New, Packing, Ready, Collected](docs/screenshots/orders.png) | ![Revenue, margin, category split, hourly heatmap, week comparison](docs/screenshots/reports.png) |
-
-| Inventory | Add product (Generate barcode / Scan with camera) |
-| --- | --- |
-| ![Inventory list with bulk import and label actions](docs/screenshots/inventory.png) | ![Add product dialog with the Generate barcode and Scan with camera buttons](docs/screenshots/add-product.png) |
-
-| Optional IMEI & warranty per product | IMEI asked at the moment of sale |
-| --- | --- |
-| ![Product editor with the IMEI and warranty option](docs/screenshots/product-imei.png) | ![Checkout asking for the IMEI of each unit being sold](docs/screenshots/imei-sale.png) |
-
-| Warranty lookup | Settings → Features (IMEI tracking is opt-in) |
-| --- | --- |
-| ![Scan an IMEI to see sale date and warranty status](docs/screenshots/warranty.png) | ![Features tab with the IMEI toggle](docs/screenshots/features.png) |
-
-| A4 tax invoice with authorised signature |
-| --- |
-| ![A4 invoice with warranty table and signature](docs/screenshots/invoice-a4.png) |
+| Dashboard | [View screenshot](docs/screenshots/dashboard.png) |
+| Inventory | [View screenshot](docs/screenshots/inventory.png) |
+| Add product | [View screenshot](docs/screenshots/add-product.png) |
+| Product features | [View screenshot](docs/screenshots/features.png) |
+| POS checkout | [View screenshot](docs/screenshots/pos.png) |
+| IMEI product setup | [View screenshot](docs/screenshots/product-imei.png) |
+| IMEI checkout | [View screenshot](docs/screenshots/imei-sale.png) |
+| Online orders | [View screenshot](docs/screenshots/orders.png) |
+| Reports | [View screenshot](docs/screenshots/reports.png) |
+| A4 invoice | [View screenshot](docs/screenshots/invoice-a4.png) |
+| Warranty lookup | [View screenshot](docs/screenshots/warranty.png) |
 
 ## Contents
 
 - [Install](#install)
+- [How to use NodeDR POS](#how-to-use-nodedr-pos)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Tech stack](#tech-stack)
@@ -345,13 +437,19 @@ Requires [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 
 ### One-click install
 
-```bash
-git clone https://github.com/Raktim94/nodedr-pos.git && cd nodedr-pos && ./install.sh
-```
+Use the [one-command installer above](#one-command-install-windows-macos-or-linux)
+to install and start NodeDR POS from PowerShell or a macOS/Linux terminal. It
+downloads the project and runs the included setup for you.
 
-[`install.sh`](install.sh) checks that Docker is installed, builds both
-images, starts the stack, waits for the backend to report healthy, then
-prints the URL to open. Re-run it any time to rebuild after pulling updates.
+If you already cloned the repository and have Docker running, use
+[`install.sh`](install.sh) to build both images, start the stack, wait for the
+backend to report healthy, and print the URL to open:
+
+```bash
+git clone https://github.com/Raktim94/nodedr-pos.git
+cd nodedr-pos
+./install.sh
+```
 
 ### Manual install
 
