@@ -8,6 +8,7 @@
 # for the backend to come up, then prints the URL to open.
 
 set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 # --- 1. Check prerequisites -------------------------------------------------
 # Docker Engine must be installed and the `docker compose` plugin available
@@ -21,6 +22,18 @@ fi
 if ! docker compose version >/dev/null 2>&1; then
   echo "Error: the 'docker compose' plugin was not found." >&2
   echo "Update Docker Desktop/Engine to a version that bundles Compose v2." >&2
+  exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo "Error: Docker is installed but not running, or your user can't talk to it." >&2
+  echo "Start Docker, and on Linux add your user to the 'docker' group (or re-run with sudo)." >&2
+  exit 1
+fi
+
+# The readiness check below uses curl.
+if ! command -v curl >/dev/null 2>&1; then
+  echo "Error: curl is required (used to wait for the app to come online). Install it and re-run." >&2
   exit 1
 fi
 
@@ -39,16 +52,18 @@ port_in_use() {
   fi
 }
 
-WANT_PORT="$(grep -m1 '^HOST_PORT=' .env 2>/dev/null | cut -d= -f2-)"
+WANT_PORT="$(grep -m1 '^HOST_PORT=' .env 2>/dev/null | cut -d= -f2- || true)"
 WANT_PORT="${WANT_PORT:-${HOST_PORT:-1994}}"
-OWN_PORT="$(docker port nodedr-pos-frontend 3000/tcp 2>/dev/null | head -1 | sed 's/.*://')"
+OWN_PORT="$(docker port nodedr-pos-frontend 3000/tcp 2>/dev/null | head -1 | sed 's/.*://' || true)"
 
 if [ "$WANT_PORT" != "$OWN_PORT" ] && port_in_use "$WANT_PORT"; then
   NEW_PORT="$WANT_PORT"
   while port_in_use "$NEW_PORT"; do NEW_PORT=$((NEW_PORT + 1)); done
   echo "Port ${WANT_PORT} is already in use by another program; using ${NEW_PORT} instead."
   touch .env
-  sed -i '/^HOST_PORT=/d;/^FRONTEND_ORIGIN=/d' .env
+  # Portable (GNU and BSD/macOS sed disagree on `sed -i`).
+  grep -v -e '^HOST_PORT=' -e '^FRONTEND_ORIGIN=' .env > .env.tmp || true
+  mv .env.tmp .env
   printf 'HOST_PORT=%s\nFRONTEND_ORIGIN=http://localhost:%s\n' "$NEW_PORT" "$NEW_PORT" >> .env
 fi
 
@@ -64,7 +79,7 @@ docker compose up -d --build
 # /api proxy on the same port the browser uses. Reads HOST_PORT from .env if
 # present (see .env.example), so this works whether or not the default port
 # was customized — nothing about this script assumes localhost-only.
-HOST_PORT="$(grep -m1 '^HOST_PORT=' .env 2>/dev/null | cut -d= -f2-)"
+HOST_PORT="$(grep -m1 '^HOST_PORT=' .env 2>/dev/null | cut -d= -f2- || true)"
 HOST_PORT="${HOST_PORT:-1994}"
 
 echo "Waiting for the app to come online..."
