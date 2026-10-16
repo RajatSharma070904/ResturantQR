@@ -12,6 +12,11 @@
 
 **[Try NodeDR POS](https://pos.nodedr.com/)** · **[Case study](https://www.raktimranjit.com/projects/nodedr-pos)** · **[Maintainer: Raktim Ranjit](https://www.raktimranjit.com/)**
 
+<p align="center">
+  <img src="docs/assets/hero-animated.svg" alt="NodeDR POS: animated overview with an illustrative sample screen" width="100%">
+</p>
+
+
 A free, open-source, **offline-first** point-of-sale and inventory
 management system for small retail shops. It runs on a machine in your shop
 with Docker Compose, so normal checkout and inventory work without an internet
@@ -30,6 +35,11 @@ Access it at **`http://<machine>:1994`** — from the shop's own machine or any
 tablet/phone on the same network.
 
 ## Install
+
+<p align="center">
+  <img src="docs/assets/install-animated.svg" alt="Animated terminal: clone the repo and run install.sh" width="100%">
+</p>
+
 
 NodeDR POS is a web app that runs on **one machine in your shop** (the "till"
 or a small server). Every phone, tablet or PC on the same Wi-Fi then opens it in
