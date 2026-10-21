@@ -2,6 +2,8 @@
 // the browser print flow and used as the content reference for the PDF
 // renderer in pdf.js.
 
+const { qrSvg } = require('./verifactu/qr');
+
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -12,6 +14,7 @@ function esc(s) {
 // user pick any printer (thermal, laser, PDF virtual printer, whatever the
 // OS/CUPS has configured) instead of us talking to a USB device directly.
 function buildReceiptHtml({ shop, invoice }) {
+  const es = !!shop.vfEnabled; // Spain: IVA wording and the NIF instead of India's GST
   const sym = shop.currencySymbol || 'Rs.';
   const money = (n) => `${sym} ${Number(n).toFixed(2)}`;
   const date = new Date(invoice.createdAt || Date.now());
@@ -23,7 +26,7 @@ function buildReceiptHtml({ shop, invoice }) {
         <tr>
           <td>${esc(it.name)}${
             shop.gstEnabled && shop.showGst && it.taxRate > 0
-              ? `<div class="sub">GST @ ${it.taxRate}%</div>`
+              ? `<div class="sub">${es ? 'IVA' : 'GST'} @ ${it.taxRate}%</div>`
               : ''
           }${(it.serials || []).map((s) => `<div class="sub">S/N ${esc(s.serial)}</div>`).join('')}</td>
           <td class="num">${it.quantity}${it.unit ? ` ${esc(it.unit)}` : ''}</td>
@@ -43,9 +46,13 @@ function buildReceiptHtml({ shop, invoice }) {
     // Prices are MRP — GST-inclusive by law — so these are a breakup of
     // tax already inside the total above, not additional charges. Labelled
     // "(incl.)" so the receipt doesn't read as if they should be added.
-    const half = Math.round((invoice.taxAmount / 2 + Number.EPSILON) * 100) / 100;
-    totalRows.push(['CGST (incl.)', money(half)]);
-    totalRows.push(['SGST (incl.)', money(invoice.taxAmount - half)]);
+    if (es) {
+      totalRows.push(['IVA (incl.)', money(invoice.taxAmount)]);
+    } else {
+      const half = Math.round((invoice.taxAmount / 2 + Number.EPSILON) * 100) / 100;
+      totalRows.push(['CGST (incl.)', money(half)]);
+      totalRows.push(['SGST (incl.)', money(invoice.taxAmount - half)]);
+    }
   }
   if (invoice.loyaltyDiscount > 0) {
     totalRows.push([`Loyalty (${invoice.pointsRedeemed} pts)`, `- ${money(invoice.loyaltyDiscount)}`]);
@@ -117,6 +124,8 @@ function buildReceiptHtml({ shop, invoice }) {
   .sub { font-size: 10px; color: #777; }
   .totals td { padding: 1px 0; }
   .grand td { font-weight: 700; font-size: 13px; border-top: 1px solid #111; padding-top: 3px; }
+  .vf { text-align: center; font-size: 11px; }
+  .vf svg { display: block; margin: 4px auto; }
   .footer { text-align: center; margin-top: 6px; font-size: 11px; }
   @page { size: 80mm auto; margin: 0; }
   @media print {
@@ -140,7 +149,7 @@ function buildReceiptHtml({ shop, invoice }) {
       ${esc(shop.address1)}${shop.address2 ? `, ${esc(shop.address2)}` : ''}<br>
       ${[shop.city, shop.state].filter(Boolean).map(esc).join(', ')}
       ${shop.phone ? `<br>Ph: ${esc(shop.phone)}` : ''}
-      ${shop.gstEnabled && shop.gstNumber ? `<br>GSTIN: ${esc(shop.gstNumber)}` : ''}
+      ${es && shop.vfNif ? `<br>NIF: ${esc(shop.vfNif)}` : shop.gstEnabled && shop.gstNumber ? `<br>GSTIN: ${esc(shop.gstNumber)}` : ''}
     </p>
     <hr class="rule">
     <p class="muted">
@@ -179,6 +188,11 @@ function buildReceiptHtml({ shop, invoice }) {
     ${
       shop.loyaltyEnabled && invoice.pointsEarned > 0
         ? `<p class="center muted">You earned ${invoice.pointsEarned} loyalty points!</p>`
+        : ''
+    }
+    ${
+      invoice.verifactu
+        ? `<hr class="rule"><div class="vf"><strong>Factura simplificada ${esc(invoice.verifactu.invoiceNumber)}</strong><div>${esc(invoice.verifactu.heading)}</div>${qrSvg(invoice.verifactu.url, '35mm')}<div>${esc(invoice.verifactu.legend)}</div><strong>${esc(invoice.verifactu.short)}</strong></div>`
         : ''
     }
     <hr class="rule">

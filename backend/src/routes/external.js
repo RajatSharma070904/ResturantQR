@@ -10,6 +10,7 @@ const orders = require('../lib/orders');
 const { qtySchema } = require('../lib/qty');
 const { buildInvoicePdf } = require('../lib/pdfInvoice');
 const { buildReceiptPdf } = require('../lib/pdf');
+const verifactu = require('../lib/verifactu/service');
 const { lookupWarranty } = require('../lib/warranty');
 
 const router = express.Router();
@@ -199,7 +200,8 @@ router.get('/bills/:ref/pdf', requireApiKey({ scope: 'bills:read' }), async (req
   if (!inv) return res.status(404).json({ error: 'Bill not found' });
   const shop = await prisma.shopSettings.findFirst();
   const layout = req.query.layout === 'receipt' ? 'receipt' : req.query.layout === 'a4' ? 'a4' : shop?.invoiceLayout;
-  const pdf = layout === 'a4' ? await buildInvoicePdf({ shop, invoice: inv }) : await buildReceiptPdf({ shop, invoice: inv });
+  const withQr = await verifactu.withQr(inv);
+  const pdf = layout === 'a4' ? await buildInvoicePdf({ shop, invoice: withQr }) : await buildReceiptPdf({ shop, invoice: withQr });
   res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${inv.invoiceNumber}.pdf"` });
   res.send(pdf);
 });

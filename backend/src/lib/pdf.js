@@ -4,6 +4,7 @@
 // HTML view (see receipt.js) that drives the browser print dialog.
 const PDFDocument = require('pdfkit');
 const { readSignature } = require('./signatures');
+const { drawQrPdf } = require('./verifactu/qr');
 
 function money(sym, n) {
   return `${sym} ${Number(n).toFixed(2)}`;
@@ -42,13 +43,14 @@ function wrappedLines(text, charsPerLine) {
 }
 
 function estimateHeight({ shop, invoice }) {
+  const es = !!shop.vfEnabled;
   let h = 40; // top/bottom margins + rounding buffer
   h += 16; // shop name
   if (shop.legalName) h += 10;
   if ([shop.address1, shop.address2].filter(Boolean).join(', ')) h += 10;
   if ([shop.city, shop.state].filter(Boolean).join(', ')) h += 10;
   if (shop.phone) h += 10;
-  if (shop.gstEnabled && shop.gstNumber) h += 10;
+  if ((es && shop.vfNif) || (shop.gstEnabled && shop.gstNumber)) h += 10;
   h += 12; // spacer + rule
   h += 32; // date/bill/customer, 3 lines
   h += 8; // rule
@@ -62,7 +64,8 @@ function estimateHeight({ shop, invoice }) {
   h += 8; // rule
   h += 13; // subtotal
   if (invoice.discountAmount > 0) h += 13;
-  if (shop.gstEnabled && invoice.taxAmount > 0) h += 26; // CGST + SGST
+  if (shop.gstEnabled && invoice.taxAmount > 0) h += es ? 13 : 26; // IVA, or CGST + SGST
+  if (invoice.verifactu) h += 150; // Spain VERI*FACTU: invoice number, heading, 35 mm QR, legends
   if (invoice.loyaltyDiscount > 0) h += 13;
   if (invoice.returnValue > 0) h += 13;
   if (invoice.creditApplied > 0) h += 13;
@@ -83,6 +86,7 @@ function estimateHeight({ shop, invoice }) {
 }
 
 function buildReceiptPdf({ shop, invoice }) {
+  const es = !!shop.vfEnabled; // Spain: IVA wording and the NIF instead of India's GST
   return new Promise((resolve, reject) => {
     const height = estimateHeight({ shop, invoice });
     const doc = new PDFDocument({ size: [227, height], margin: 16 }); // ~80mm wide, height fit to this receipt
@@ -102,7 +106,8 @@ function buildReceiptPdf({ shop, invoice }) {
     const cityState = [shop.city, shop.state].filter(Boolean).join(', ');
     if (cityState) doc.text(cityState, { align: 'center' });
     if (shop.phone) doc.text(`Ph: ${shop.phone}`, { align: 'center' });
-    if (shop.gstEnabled && shop.gstNumber) doc.text(`GSTIN: ${shop.gstNumber}`, { align: 'center' });
+    if (es && shop.vfNif) doc.text(`NIF: ${shop.vfNif}`, { align: 'center' });
+    else if (shop.gstEnabled && shop.gstNumber) doc.text(`GSTIN: ${shop.gstNumber}`, { align: 'center' });
 
     doc.moveDown(0.5);
     rule(doc, { dashed: true });
@@ -144,7 +149,7 @@ function buildReceiptPdf({ shop, invoice }) {
       doc.text(money(sym, base), doc.page.margins.left + colName + colQty + colRate, y, { width: colAmt, align: 'right' });
       doc.y = y + Math.max(rowHeight, 11);
       if (shop.gstEnabled && shop.showGst && it.taxRate > 0) {
-        doc.fontSize(6.5).fillColor('#666').text(`  GST @ ${it.taxRate}%`);
+        doc.fontSize(6.5).fillColor('#666').text(`  ${es ? 'IVA' : 'GST'} @ ${it.taxRate}%`);
         doc.fontSize(8).fillColor('#000');
       }
       for (const s of it.serials || []) {
@@ -171,9 +176,13 @@ function buildReceiptPdf({ shop, invoice }) {
     if (shop.gstEnabled && invoice.taxAmount > 0) {
       // Prices are MRP — GST-inclusive by law — so this is a breakup of
       // tax already inside the total, not an addition to it.
-      const half = Math.round((invoice.taxAmount / 2 + Number.EPSILON) * 100) / 100;
-      totalLine('CGST (incl.)', money(sym, half));
-      totalLine('SGST (incl.)', money(sym, invoice.taxAmount - half));
+      if (es) {
+        totalLine('IVA (incl.)', money(sym, invoice.taxAmount));
+      } else {
+        const half = Math.round((invoice.taxAmount / 2 + Number.EPSILON) * 100) / 100;
+        totalLine('CGST (incl.)', money(sym, half));
+        totalLine('SGST (incl.)', money(sym, invoice.taxAmount - half));
+      }
     }
     if (invoice.loyaltyDiscount > 0) {
       totalLine(`Loyalty (${invoice.pointsRedeemed} pts)`, `- ${money(sym, invoice.loyaltyDiscount)}`);
@@ -208,6 +217,20 @@ function buildReceiptPdf({ shop, invoice }) {
     if (shop.loyaltyEnabled && invoice.pointsEarned > 0) {
       doc.moveDown(0.3);
       doc.fontSize(8).text(`You earned ${invoice.pointsEarned} loyalty points!`, { align: 'center' });
+    }
+
+    if (invoice.verifactu) {
+      const vf = invoice.verifactu;
+      doc.moveDown(0.5);
+      rule(doc, { dashed: true });
+      doc.font('Helvetica-Bold').fontSize(8).text(`Factura simplificada ${vf.invoiceNumber}`, { align: 'center' });
+      doc.font('Helvetica').text(vf.heading, { align: 'center' });
+      const size = 99; // 35 mm, inside AEAT's 30-40 mm
+      drawQrPdf(doc, vf.url, doc.page.margins.left + (width - size) / 2, doc.y + 2, size);
+      doc.y += size + 6;
+      doc.text(vf.legend, { align: 'center' });
+      doc.font('Helvetica-Bold').text(vf.short, { align: 'center' });
+      doc.font('Helvetica');
     }
 
     doc.moveDown(0.5);

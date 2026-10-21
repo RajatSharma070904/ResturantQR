@@ -2,7 +2,7 @@ name: nodedr-pos
 
 services:
   backend:
-    image: ghcr.io/raktim94/nodedr-pos-backend:1.5.1
+    image: ghcr.io/raktim94/nodedr-pos-backend:1.6.0
     container_name: nodedr-pos-backend
     hostname: nodedr-pos-backend
     restart: unless-stopped
@@ -11,6 +11,8 @@ services:
       PORT: "4000"
       FRONTEND_ORIGIN: "http://localhost:1994"
       COOKIE_SECURE: "false"
+      # Spain VERI*FACTU producer identifier (see docs/verifactu.md). Only needed for Spanish installs.
+      VERIFACTU_PRODUCER_ID: ""
       # In-app "Update now" button (Settings > Updates) -> the updater below.
       UPDATER_URL: "http://nodedr-pos-updater:8080"
       UPDATER_TOKEN: "nodedr-pos-updater"
@@ -38,6 +40,9 @@ services:
         - container: COOKIE_SECURE
           description:
             en_US: Set to true only when served over real HTTPS (e.g. via the optional Caddy or Cloudflare Tunnel profile). Leave false for plain local/LAN use.
+        - container: VERIFACTU_PRODUCER_ID
+          description:
+            en_US: Spain only. The software producer's identifier for VERI*FACTU records (at most 20 characters). Leave empty outside Spain.
       volumes:
         - container: /app/data
           description:
@@ -47,7 +52,7 @@ services:
             en_US: USB passthrough for optional direct-USB thermal receipt printing. Safe to leave as-is with no printer attached.
 
   frontend:
-    image: ghcr.io/raktim94/nodedr-pos-frontend:1.5.1
+    image: ghcr.io/raktim94/nodedr-pos-frontend:1.6.0
     container_name: nodedr-pos-frontend
     hostname: nodedr-pos-frontend
     restart: unless-stopped
@@ -72,7 +77,7 @@ services:
   # NodeDR POS images above and recreates those two containers (nothing else).
   # Needs the Docker socket to do that; data in /DATA/AppData is untouched.
   updater:
-    image: ghcr.io/raktim94/nodedr-pos-updater:1.5.1
+    image: ghcr.io/raktim94/nodedr-pos-updater:1.6.0
     container_name: nodedr-pos-updater
     hostname: nodedr-pos-updater
     restart: unless-stopped
@@ -146,10 +151,18 @@ x-casaos:
   index: /
   scheme: http
   port_map: "1994"
-  version: "1.5.1"
-  update_at: "2026-10-08"
+  version: "1.6.0"
+  update_at: "2026-10-22"
   release_notes:
     en_US: |-
+      1.6.0 (2026-10-22):
+      - New: Spain VERI*FACTU (Settings > VERI*FACTU). Every sale becomes a
+        simplified invoice in a tamper-evident chain, returns become corrective
+        invoices, receipts print the AEAT QR code, and records can be reported to
+        the tax agency with your own certificate. Implemented, not certified: it
+        has not been run against the live AEAT portal and no Declaracion
+        Responsable has been issued. Off by default; nothing changes elsewhere.
+
       1.5.1 (2026-10-08):
       - Scanning an unknown barcode in Inventory now looks it up online and
         opens the form pre-filled (falls back to a blank form if offline).

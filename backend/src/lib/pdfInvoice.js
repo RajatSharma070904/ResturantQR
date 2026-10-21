@@ -5,6 +5,7 @@ const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
 const { readSignature } = require('./signatures');
 const { buildUpiUri } = require('./upi');
+const { drawQrPdf } = require('./verifactu/qr');
 
 const GREEN = '#0d3b28';
 const MUTED = '#66746b';
@@ -36,6 +37,7 @@ function amountInWords(amount) {
 const fmtDate = (d) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
 async function buildInvoicePdf({ shop, invoice }) {
+  const es = !!shop.vfEnabled; // Spain: IVA wording, the NIF and a simplified-invoice title instead of India's GST
   const sym = shop.currencySymbol || 'Rs.';
   // Core fonts have no ₹ glyph; the app's symbol for INR is already "Rs.".
   const money = (n) => `${sym} ${Number(n).toFixed(2)}`;
@@ -70,11 +72,12 @@ async function buildInvoicePdf({ shop, invoice }) {
     if (addr) doc.text(addr, { width: W * 0.6 });
     const contact = [shop.phone && `Ph: ${shop.phone}`, shop.email].filter(Boolean).join('  |  ');
     if (contact) doc.text(contact, { width: W * 0.6 });
-    if (shop.gstEnabled && shop.gstNumber) doc.text(`GSTIN: ${shop.gstNumber}`, { width: W * 0.6 });
+    if (es && shop.vfNif) doc.text(`NIF: ${shop.vfNif}`, { width: W * 0.6 });
+    else if (shop.gstEnabled && shop.gstNumber) doc.text(`GSTIN: ${shop.gstNumber}`, { width: W * 0.6 });
     if (shop.panNumber) doc.text(`PAN: ${shop.panNumber}`, { width: W * 0.6 });
     const leftEnd = doc.y;
 
-    doc.font('Helvetica-Bold').fontSize(20).fillColor('#17251d').text(shop.gstEnabled ? 'TAX INVOICE' : 'INVOICE', L + W * 0.6, 40, { width: W * 0.4, align: 'right' });
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#17251d').text(es ? 'FACTURA SIMPLIFICADA' : shop.gstEnabled ? 'TAX INVOICE' : 'INVOICE', L + W * 0.6, 40, { width: W * 0.4, align: 'right' });
     doc.font('Helvetica').fontSize(9).fillColor(MUTED);
     doc.text(`No: ${invoice.invoiceNumber}`, L + W * 0.6, 66, { width: W * 0.4, align: 'right' });
     doc.text(`Date: ${fmtDate(invoice.createdAt || Date.now())}`, { width: W * 0.4, align: 'right', continued: false });
@@ -98,7 +101,7 @@ async function buildInvoicePdf({ shop, invoice }) {
       { k: 'hsn', label: 'HSN', w: 62, align: 'left' },
       { k: 'qty', label: 'Qty', w: 48, align: 'right' },
       { k: 'rate', label: 'Rate', w: 70, align: 'right' },
-      { k: 'gst', label: 'GST', w: 48, align: 'right' },
+      { k: 'gst', label: es ? 'IVA' : 'GST', w: 48, align: 'right' },
       { k: 'amt', label: 'Amount', w: 80, align: 'right' },
     ];
     const drawHeader = (yy) => {
@@ -164,9 +167,13 @@ async function buildInvoicePdf({ shop, invoice }) {
     trow('Subtotal', money(invoice.subtotal));
     if (invoice.discountAmount > 0) trow(invoice.discountType === 'percent' ? `Discount (${invoice.discountValue}%)` : 'Discount', `- ${money(invoice.discountAmount)}`);
     if (shop.gstEnabled && invoice.taxAmount > 0) {
-      const half = Math.round((invoice.taxAmount / 2 + Number.EPSILON) * 100) / 100;
-      trow('CGST (incl.)', money(half));
-      trow('SGST (incl.)', money(invoice.taxAmount - half));
+      if (es) {
+        trow('IVA (incl.)', money(invoice.taxAmount));
+      } else {
+        const half = Math.round((invoice.taxAmount / 2 + Number.EPSILON) * 100) / 100;
+        trow('CGST (incl.)', money(half));
+        trow('SGST (incl.)', money(invoice.taxAmount - half));
+      }
     }
     if (invoice.loyaltyDiscount > 0) trow(`Loyalty (${invoice.pointsRedeemed} pts)`, `- ${money(invoice.loyaltyDiscount)}`);
     if (invoice.returnValue > 0) trow('Returns', `- ${money(invoice.returnValue)}`);
@@ -189,6 +196,20 @@ async function buildInvoicePdf({ shop, invoice }) {
       doc.font('Helvetica-Bold').fontSize(8).fillColor(GREEN).text('Scan to pay balance', L + 84, ly + 20, { width: 120 });
       doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(`${shop.upiId}`, L + 84, doc.y, { width: 120 });
       ly += 82;
+    }
+    if (invoice.verifactu) {
+      // Spain VERI*FACTU: invoice number, heading, 35 mm QR (inside AEAT's 30-40 mm) and legends.
+      const vf = invoice.verifactu;
+      if (ly + 112 > bottomLimit()) {
+        doc.addPage();
+        ly = doc.page.margins.top;
+      }
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(GREEN).text(`Factura simplificada ${vf.invoiceNumber}`, L, ly, { width: W * 0.5, lineBreak: false });
+      doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(vf.heading, L, ly + 11, { width: W * 0.5, lineBreak: false });
+      drawQrPdf(doc, vf.url, L, ly + 24, 99);
+      doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(vf.legend, L + 107, ly + 50, { width: 150 });
+      doc.font('Helvetica-Bold').fillColor(GREEN).text(vf.short, L + 107, doc.y + 2, { width: 150, lineBreak: false });
+      ly += 128;
     }
     y = Math.max(ty, ly) + 10;
 

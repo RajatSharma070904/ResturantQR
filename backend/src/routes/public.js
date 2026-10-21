@@ -4,6 +4,7 @@ const prisma = require('../lib/prisma');
 const { verifyReceiptToken, verifyPortalToken, receiptUrl } = require('../lib/publicLink');
 const { buildInvoicePdf } = require('../lib/pdfInvoice');
 const { buildReceiptPdf } = require('../lib/pdf');
+const verifactu = require('../lib/verifactu/service');
 
 const router = express.Router();
 
@@ -23,7 +24,8 @@ router.get('/receipt/:token', async (req, res) => {
     prisma.shopSettings.findFirst(),
   ]);
   if (!invoice || !shop) return res.status(404).json({ error: 'Not found' });
-  const pdf = shop.invoiceLayout === 'a4' ? await buildInvoicePdf({ shop, invoice }) : await buildReceiptPdf({ shop, invoice });
+  const withQr = await verifactu.withQr(invoice);
+  const pdf = shop.invoiceLayout === 'a4' ? await buildInvoicePdf({ shop, invoice: withQr }) : await buildReceiptPdf({ shop, invoice: withQr });
   res.set({
     'Content-Type': 'application/pdf',
     'Content-Disposition': `inline; filename="${invoice.invoiceNumber}.pdf"`,

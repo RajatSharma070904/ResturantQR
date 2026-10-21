@@ -26,8 +26,9 @@ import { SyncTab } from "./SyncTab";
 import { FeaturesTab } from "./FeaturesTab";
 import { IntegrationsTab } from "./IntegrationsTab";
 import { UpdatesTab } from "./UpdatesTab";
+import { VerifactuTab } from "./VerifactuTab";
 
-const TABS = ["Company", "Tax & Loyalty", "Receipt", "Features", "Invoice & signature", "Payments", "Online stores", "E-mail reports", "Branches", "Reference Data", "Integrations", "Password", "Staff", "Updates"] as const;
+const TABS = ["Company", "Tax & Loyalty", "Receipt", "Features", "Invoice & signature", "Payments", "Online stores", "E-mail reports", "Branches", "Reference Data", "Integrations", "VERI*FACTU", "Password", "Staff", "Updates"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function SettingsPage() {
@@ -101,6 +102,7 @@ export default function SettingsPage() {
       {tab === "Branches" && <SyncTab />}
       {tab === "Reference Data" && <ReferenceDataTab />}
       {tab === "Integrations" && <IntegrationsTab />}
+      {tab === "VERI*FACTU" && <VerifactuTab />}
       {tab === "Password" && <PasswordTab />}
       {tab === "Staff" && <UsersPanel />}
       {tab === "Updates" && <UpdatesTab />}

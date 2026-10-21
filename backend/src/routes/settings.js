@@ -91,7 +91,7 @@ router.get('/currencies', (req, res) => {
 // Columns that hold encrypted third-party credentials or sync secrets are
 // NEVER sent to any client — not even an admin's browser needs them back
 // (the Settings tabs show "stored" instead).
-const SECRET_COLUMNS = ['terminalConfigEnc', 'smtpConfigEnc', 'syncSecretEnc'];
+const SECRET_COLUMNS = ['terminalConfigEnc', 'smtpConfigEnc', 'syncSecretEnc', 'vfCertEnc', 'vfCertPassEnc'];
 // What an anonymous caller (login / onboarding / QR-menu screens) may see.
 const PUBLIC_COLUMNS = ['id', 'shopName', 'legalName', 'address1', 'address2', 'city', 'state', 'phone', 'currencyCode', 'currencySymbol', 'receiptFooter', 'loyaltyEnabled', 'invoiceLayout', 'gstEnabled', 'showGst'];
 

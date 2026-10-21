@@ -32,6 +32,8 @@ const announcementRoutes = require('./routes/announcements');
 const purchasingRoutes = require('./routes/purchasing');
 const emailReportRoutes = require('./routes/emailReports');
 const { startScheduler } = require('./lib/scheduler');
+const { startSubmitter } = require('./lib/verifactu/service');
+const verifactuRoutes = require('./routes/verifactu');
 const { requireApiKey } = require('./middleware/apiKeyAuth');
 const { handleMcp } = require('./mcp/http');
 
@@ -114,6 +116,7 @@ app.use('/api/integrations', integrationRoutes.admin);
 app.use('/api/webhooks', integrationRoutes.hook);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/display', displayRoutes);
+app.use('/api/verifactu', verifactuRoutes);
 
 // MCP over Streamable HTTP — authenticated with an API key (Bearer), tools
 // limited to that key's scopes. Same rate budget as the External API.
@@ -169,6 +172,7 @@ function ensureFirewallRules() {
 app.listen(PORT, () => {
   console.log(`nodedr-pos backend listening on port ${PORT}`);
   startScheduler();
+  startSubmitter();
   startSync();
   ensureFirewallRules();
 });

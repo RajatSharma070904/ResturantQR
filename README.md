@@ -253,6 +253,16 @@ All tutorial screenshots are in [`docs/screenshots/`](docs/screenshots/):
 - [Contributing](#contributing)
 - [License](#license)
 
+## What's new in 1.6
+
+- **Spain VERI\*FACTU (implemented, not certified)** — every sale becomes a simplified
+  invoice in a tamper-evident, hash-chained log; returns become corrective invoices;
+  receipts print the AEAT QR code (native on 80 mm thermal paper); records are reported to
+  the tax agency with your own certificate. Off by default and invisible outside Spain. It
+  has not been run against the live AEAT portal and no *Declaración Responsable* has been
+  issued, so it is **not** claimed compliant. Details and limits:
+  [docs/verifactu.md](docs/verifactu.md).
+
 ## What's new in 1.5
 
 - **Find products online** — Inventory → *Find online* searches free community

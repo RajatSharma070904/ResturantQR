@@ -17,6 +17,8 @@
 // trade-off of the USB path specifically — the HTML/PDF receipts remain the
 // correct choice whenever exact non-Latin text matters.
 
+const { escposQr } = require('./verifactu/qr');
+
 const ESC = 0x1b;
 const GS = 0x1d;
 
@@ -105,6 +107,7 @@ function wrap(text, width) {
 const DRAWER_KICK = Buffer.from([ESC, 0x70, 0x00, 0x19, 0xfa]);
 
 function buildReceiptEscPos({ shop, invoice, width = 42 }) {
+  const es = !!shop.vfEnabled; // Spain: IVA wording and the NIF instead of India's GST
   // Only fall back to the currency CODE (e.g. "EUR") instead of the symbol
   // when the symbol itself isn't plain ASCII (€, £, ﷼, ₱, ...) — a generic
   // printer's default codepage can't render those reliably, but a 3-letter
@@ -127,7 +130,8 @@ function buildReceiptEscPos({ shop, invoice, width = 42 }) {
   const cityState = [shop.city, shop.state].filter(Boolean).join(', ');
   if (cityState) push(center(toPrinterText(cityState), width));
   if (shop.phone) push(center(toPrinterText(`Ph: ${shop.phone}`), width));
-  if (shop.gstEnabled && shop.gstNumber) push(center(toPrinterText(`GSTIN: ${shop.gstNumber}`), width));
+  if (es && shop.vfNif) push(center(toPrinterText(`NIF: ${shop.vfNif}`), width));
+  else if (shop.gstEnabled && shop.gstNumber) push(center(toPrinterText(`GSTIN: ${shop.gstNumber}`), width));
   push(rule(width));
   push(toPrinterText(date.toLocaleString()));
   push(toPrinterText(`Bill: #${invoice.invoiceNumber}`));
@@ -147,7 +151,7 @@ function buildReceiptEscPos({ shop, invoice, width = 42 }) {
     const qty = `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`;
     push(row(`  ${qty} x ${money(item.price)}`, money(item.price * item.quantity), width));
     if (shop.gstEnabled && shop.showGst && item.taxRate > 0) {
-      push(`  GST @ ${item.taxRate}%`);
+      push(`  ${es ? 'IVA' : 'GST'} @ ${item.taxRate}%`);
     }
     for (const s of item.serials || []) push(`  S/N ${s.serial}`);
   }
@@ -159,9 +163,13 @@ function buildReceiptEscPos({ shop, invoice, width = 42 }) {
     push(row(label, `-${money(invoice.discountAmount)}`, width));
   }
   if (shop.gstEnabled && invoice.taxAmount > 0) {
-    const half = Math.round((invoice.taxAmount / 2 + Number.EPSILON) * 100) / 100;
-    push(row('CGST (incl.)', money(half), width));
-    push(row('SGST (incl.)', money(invoice.taxAmount - half), width));
+    if (es) {
+      push(row('IVA (incl.)', money(invoice.taxAmount), width));
+    } else {
+      const half = Math.round((invoice.taxAmount / 2 + Number.EPSILON) * 100) / 100;
+      push(row('CGST (incl.)', money(half), width));
+      push(row('SGST (incl.)', money(invoice.taxAmount - half), width));
+    }
   }
   if (invoice.loyaltyDiscount > 0) {
     push(row(`Loyalty (${invoice.pointsRedeemed} pts)`, `-${money(invoice.loyaltyDiscount)}`, width));
@@ -197,6 +205,15 @@ function buildReceiptEscPos({ shop, invoice, width = 42 }) {
   if (shop.loyaltyEnabled && invoice.pointsEarned > 0) {
     push(center(`You earned ${invoice.pointsEarned} loyalty points!`, width));
   }
+  if (invoice.verifactu) {
+    const vf = invoice.verifactu;
+    push(rule(width));
+    push(center(toPrinterText(`Factura simplificada ${vf.invoiceNumber}`), width), { bold: true });
+    push(center(toPrinterText(vf.heading), width));
+    push('', { raw: escposQr(vf.url) });
+    push(center(toPrinterText(vf.legend), width));
+    push(center(toPrinterText(vf.short), width), { bold: true });
+  }
   push(rule(width));
   for (const l of wrap(shop.receiptFooter || 'Thank You! Visit Again.', width)) push(center(l, width));
 
@@ -205,7 +222,11 @@ function buildReceiptEscPos({ shop, invoice, width = 42 }) {
   // per-line overhead of a few extra command bytes is irrelevant next to a
   // full receipt's byte count.
   const segments = [CMD.init, CMD.codepagePc437, CMD.alignLeft];
-  for (const { text, bold } of lines) {
+  for (const { text, bold, raw } of lines) {
+    if (raw) {
+      segments.push(raw);
+      continue;
+    }
     const lineBuffer = Buffer.from(`${text}\n`, 'latin1');
     segments.push(bold ? Buffer.concat([CMD.boldOn, lineBuffer, CMD.boldOff]) : lineBuffer);
   }

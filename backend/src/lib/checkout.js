@@ -7,6 +7,7 @@ const { qtySchema } = require('./qty');
 const { hasPerm } = require('../middleware/auth');
 const { parseRates } = require('./fx');
 const terminal = require('./terminal');
+const verifactu = require('./verifactu/service');
 
 const checkoutSchema = z
   .object({
@@ -280,7 +281,7 @@ async function performCheckoutOnce(body, ctx = {}) {
             refundAmount: refund,
           });
         }
-        returnRecords.push({ invoiceId: original.id, customerId: original.customerId, groupRefund, lines });
+        returnRecords.push({ invoiceId: original.id, customerId: original.customerId, groupRefund, lines, originalItems: original.items });
       }
 
       // --- Store credit the customer spends on this bill -------------------
@@ -398,6 +399,10 @@ async function performCheckoutOnce(body, ctx = {}) {
         include: { items: true },
       });
 
+      // Spain VERI*FACTU: the sale's fiscal record is written in this same transaction, so a bill is never issued
+      // without it (and a failure to produce it rolls the whole bill back).
+      await verifactu.recordSale(tx, settings, created);
+
       const soldAt = new Date();
       for (const plan of serialPlan) {
         const invItem = created.items[plan.lineIndex];
@@ -424,7 +429,7 @@ async function performCheckoutOnce(body, ctx = {}) {
 
       // Persist the returns (audit trail) and restock the returned units.
       for (const rr of returnRecords) {
-        await tx.return.create({
+        const createdReturn = await tx.return.create({
           data: {
             invoiceId: rr.invoiceId,
             customerId: rr.customerId,
@@ -433,7 +438,9 @@ async function performCheckoutOnce(body, ctx = {}) {
             note: `Bill ${invoiceNumber}`,
             items: { create: rr.lines },
           },
+          include: { items: true },
         });
+        await verifactu.recordReturn(tx, settings, createdReturn, rr.originalItems);
       }
       for (const [productId, qty] of restock) {
         await tx.product.update({ where: { id: productId }, data: { stock: { increment: qty } } });

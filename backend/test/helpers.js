@@ -22,6 +22,7 @@ async function startServer(port) {
   }
   return {
     base,
+    dbPath: path.join(dir, 't.db'),
     log: () => log,
     stop: () => {
       child.kill();

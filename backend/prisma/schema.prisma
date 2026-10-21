@@ -101,6 +101,19 @@ model ShopSettings {
   syncBranchCode String?
   syncSecretEnc  String?
   syncLastAt     DateTime?
+  // Spain VERI*FACTU (see lib/verifactu/service.js and docs/verifactu.md). Implemented, not certified.
+  // The certificate (.p12) and its password are AES-GCM encrypted (lib/secretBox.js).
+  vfEnabled       Boolean   @default(false)
+  vfEnvironment   String    @default("TEST") // TEST | PRODUCTION — separate chains
+  vfNif           String? // the shop's NIF/CIF (9 characters)
+  vfSeries        String    @default("T1")
+  vfNextNumber    Int       @default(1)
+  vfNextRefundNumber Int    @default(1)
+  vfInstallation  String?
+  vfCertEnc       String?
+  vfCertPassEnc   String?
+  vfCertSubject   String?
+  vfCertExpires   DateTime?
 }
 
 model Product {
@@ -566,4 +579,43 @@ model AppliedTransfer {
   transferId Int      @id
   status     String // SHIPPED | RECEIVED
   appliedAt  DateTime @default(now())
+}
+
+// Append-only, hash-chained fiscal log (Spain VERI*FACTU). SQLite triggers in migration
+// 20261022000000_verifactu refuse DELETE, any change to a record's identity/amounts/XML/hash, and any insert
+// that does not continue the chain. Only the submission outcome columns can change. invoiceId/returnId are
+// plain numbers, not foreign keys: the log must outlive the rows it describes.
+model VerifactuRecord {
+  id            Int       @id @default(autoincrement())
+  issuerNif     String
+  environment   String // TEST | PRODUCTION
+  seq           Int
+  type          String // ALTA
+  invoiceType   String // F2 | R5
+  invoiceNumber String
+  issueDate     String // dd-MM-yyyy, Europe/Madrid
+  taxTotalCents Int
+  totalCents    Int
+  generatedAt   String // FechaHoraHusoGenRegistro
+  previousHash  String?
+  hash          String
+  xml           String
+  qrUrl         String?
+  invoiceId     Int?
+  returnId      Int?
+  status        String    @default("PENDING") // PENDING | ACCEPTED | ACCEPTED_WITH_ERRORS | REJECTED | ERROR
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  csv           String?
+  errorCode     String?
+  errorText     String?
+  responseXml   String?
+  submittedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@unique([issuerNif, environment, seq])
+  @@unique([issuerNif, environment, invoiceNumber])
+  @@index([invoiceId])
+  @@index([status, nextAttemptAt])
+  @@map("verifactu_records")
 }

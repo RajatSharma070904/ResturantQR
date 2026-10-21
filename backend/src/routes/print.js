@@ -8,6 +8,8 @@ const { buildReceiptEscPos, DRAWER_KICK } = require('../lib/escposReceipt');
 const { buildZpl, buildEpl } = require('../lib/labels');
 const { sendRaw, findPrinterInterface, probeCharDevices, PrinterNotFoundError } = require('../lib/escposUsb');
 
+const verifactu = require('../lib/verifactu/service');
+
 const router = express.Router();
 router.use(requireAuth);
 
@@ -135,7 +137,7 @@ async function loadInvoiceAndShop(id) {
     }),
     prisma.shopSettings.findFirst(),
   ]);
-  return { invoice, shop };
+  return { invoice: await verifactu.withQr(invoice), shop };
 }
 
 // GET /api/print/:invoiceId/receipt — a standalone, self-printing HTML page.
