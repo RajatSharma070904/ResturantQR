@@ -221,3 +221,15 @@ test('a sale with an IVA rate Spain does not use is refused and rolled back whol
   assert.equal((await records()).length, before);
   assert.equal((await admin.get('/api/products')).data.find((p) => p.id === odd.id).stock, 5, 'stock untouched');
 });
+
+test('a shop that is not on euros never records, even with the switch left on', async () => {
+  const before = (await records()).length;
+  assert.equal((await admin.put('/api/settings', { currencyCode: 'USD', confirmPassword: PW })).status, 200);
+  try {
+    const r = await sale([{ productId: p10.id, quantity: 1 }]);
+    assert.equal(r.status, 201, JSON.stringify(r.data));
+    assert.equal((await records()).length, before);
+  } finally {
+    assert.equal((await admin.put('/api/settings', { currencyCode: 'EUR', confirmPassword: PW })).status, 200);
+  }
+});

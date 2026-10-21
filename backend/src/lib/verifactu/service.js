@@ -203,7 +203,8 @@ function assertReady(shop) {
  * produced: a sale must not be issued without its fiscal record.
  */
 async function recordSale(tx, shop, invoice) {
-  if (!shop?.vfEnabled) return null;
+  // Spain only (euro shops): any other currency never records, even if the switch was left on.
+  if (!shop?.vfEnabled || shop.currencyCode !== 'EUR') return null;
   if (!invoice.items?.length || !(invoice.totalAmount > 0)) return null;
   assertReady(shop);
   const dup = await tx.verifactuRecord.findFirst({ where: { invoiceId: invoice.id, invoiceType: 'F2' } });
@@ -223,7 +224,7 @@ async function recordSale(tx, shop, invoice) {
  * sale. `ret` is the created Return with its items; `originalItems` are the original invoice's lines.
  */
 async function recordReturn(tx, shop, ret, originalItems) {
-  if (!shop?.vfEnabled) return null;
+  if (!shop?.vfEnabled || shop.currencyCode !== 'EUR') return null;
   const original = await tx.verifactuRecord.findFirst({
     where: { invoiceId: ret.invoiceId, invoiceType: 'F2', environment: shop.vfEnvironment },
   });
