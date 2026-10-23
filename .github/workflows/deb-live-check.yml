@@ -43,3 +43,4 @@ jobs:
           sudo apt-get remove -y nodedr-pos
           ! systemctl is-active --quiet nodedr-pos.service
           sudo apt-get purge -y nodedr-pos
+          test -f /etc/nodedr-pos/nodedr-pos.env
