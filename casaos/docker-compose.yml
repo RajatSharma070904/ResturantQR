@@ -152,9 +152,12 @@ x-casaos:
   scheme: http
   port_map: "1994"
   version: "1.6.2"
-  update_at: "2026-10-22"
+  update_at: "2026-10-24"
   release_notes:
     en_US: |-
+      1.6.2 (2026-10-24):
+      - Security update: zod 4.6.6 (fixes a memory-exhaustion advisory). No behaviour changes.
+
       1.6.1 (2026-10-22):
       - VERI*FACTU now works only for shops in Spain (euro shops): it is hidden and never
         records for any other currency.
