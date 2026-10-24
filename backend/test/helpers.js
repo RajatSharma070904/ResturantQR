@@ -4,7 +4,20 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-async function startServer(port) {
+// Test files run in parallel, so fixed ports collide; the port argument is only a hint.
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const srv = require('net').createServer();
+    srv.once('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+async function startServer(_portHint) {
+  const port = await freePort();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nodedr-test-'));
   const env = { ...process.env, DATABASE_URL: `file:${path.join(dir, 't.db')}`, PORT: String(port), JWT_SECRET: 'test-secret-test-secret-test-secret', NODE_ENV: 'test' };
   execFileSync(process.execPath, ['node_modules/.bin/prisma', 'migrate', 'deploy'], { env, cwd: path.join(__dirname, '..'), stdio: 'pipe' });
