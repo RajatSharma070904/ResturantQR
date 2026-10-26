@@ -1,12 +1,12 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "resturantqr-frontend",
+  "version": "1.0.0",
   "private": true,
-  "author": "Raktim Ranjit <mail@raktimranjit.com> (https://github.com/Raktim94)",
+  "author": "Rajat Sharma (https://github.com/RajatSharma070904)",
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Raktim94/nodedr-pos.git"
+    "url": "https://github.com/RajatSharma070904/ResturantQR.git"
   },
   "scripts": {
     "dev": "next dev -p 1994",
