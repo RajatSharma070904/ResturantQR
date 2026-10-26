@@ -27,6 +27,7 @@ import {
   UserCog,
   Network,
   MoreHorizontal,
+  QrCode,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { api } from "@/lib/api";
@@ -50,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, staffOnly: true, primary: true },
   { href: "/pos", label: "POS Checkout", icon: ScanBarcode, staffOnly: true, primary: true },
   { href: "/orders", label: "Online orders", icon: ShoppingBag, perm: "orders", primary: true },
+  { href: "/tables", label: "Table QR", icon: QrCode, primary: true },
   { href: "/inventory", label: "Inventory", icon: Package, staffOnly: true, primary: true },
   { href: "/purchasing", label: "Purchasing", icon: Truck, perm: "purchasing" },
   { href: "/customers", label: "Customers", icon: Users, staffOnly: true },

@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, CheckCircle2, ClipboardList, QrCode, Store, Truck, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardList, QrCode, Store, Truck, UtensilsCrossed, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge, EmptyState, PageHeader } from "@/components/ui/Bits";
 import { Modal } from "@/components/ui/Modal";
@@ -15,14 +15,14 @@ import type { Order } from "@/lib/types";
 type Col = "NEW" | "PACKING" | "READY" | "COLLECTED";
 const COLUMNS: { key: Col; title: string; hint: string }[] = [
   { key: "NEW", title: "New", hint: "Stock is reserved" },
-  { key: "PACKING", title: "Packing", hint: "Being picked" },
-  { key: "READY", title: "Ready", hint: "Waiting for the customer" },
-  { key: "COLLECTED", title: "Collected", hint: "Handed over today" },
+  { key: "PACKING", title: "Packing / Kitchen", hint: "Being picked or cooked" },
+  { key: "READY", title: "Ready", hint: "Waiting for the customer / Ready to serve" },
+  { key: "COLLECTED", title: "Collected / Billed", hint: "Handed over & billed today" },
 ];
 const NEXT: Record<string, Col | undefined> = { NEW: "PACKING", PACKING: "READY", READY: "COLLECTED" };
 const ALLOWED: Record<string, string[]> = { NEW: ["PACKING", "READY"], PACKING: ["READY"], READY: ["COLLECTED"] };
 
-const channelLabel = (c: string) => ({ API: "Store API", WOOCOMMERCE: "WooCommerce", SHOPIFY: "Shopify", GENERIC: "Webhook" }[c] ?? c);
+const channelLabel = (c: string) => ({ API: "Store API", WOOCOMMERCE: "WooCommerce", SHOPIFY: "Shopify", GENERIC: "Webhook", TABLE_QR: "Table QR" }[c] ?? c);
 
 export default function OrdersPage() {
   const { data: shop } = useShopSettings();
@@ -140,10 +140,11 @@ export default function OrdersPage() {
                     </div>
                     <p className="mt-1.5 line-clamp-2 text-xs text-foreground-muted">{o.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      <Badge tone="brand">
-                        {o.fulfilment === "DELIVERY" ? <Truck className="h-3 w-3" aria-hidden="true" /> : <Store className="h-3 w-3" aria-hidden="true" />}
-                        {channelLabel(o.channel)} · {o.fulfilment === "DELIVERY" ? "delivery" : "pickup"}
+                      <Badge tone={o.channel === "TABLE_QR" ? "good" : "brand"}>
+                        {o.channel === "TABLE_QR" ? <UtensilsCrossed className="h-3 w-3" aria-hidden="true" /> : o.fulfilment === "DELIVERY" ? <Truck className="h-3 w-3" aria-hidden="true" /> : <Store className="h-3 w-3" aria-hidden="true" />}
+                        {channelLabel(o.channel)} · {o.fulfilment === "DINE_IN" ? "Dine-in" : o.fulfilment === "DELIVERY" ? "delivery" : "pickup"}
                       </Badge>
+                      {o.note && <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-foreground-muted">{o.note}</span>}
                       {o.paid && <Badge tone="good">Paid</Badge>}
                     </div>
                     {o.status !== "COLLECTED" && (

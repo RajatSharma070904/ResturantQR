@@ -201,10 +201,11 @@ export interface Order {
   channel: string;
   externalId: string | null;
   status: "NEW" | "PACKING" | "READY" | "COLLECTED" | "CANCELLED";
-  fulfilment: "PICKUP" | "DELIVERY";
+  fulfilment: "PICKUP" | "DELIVERY" | "DINE_IN";
   pickupCode: string;
   customerName: string;
   customerPhone: string | null;
+  note?: string | null;
   total: number;
   paid: boolean;
   invoiceId: number | null;

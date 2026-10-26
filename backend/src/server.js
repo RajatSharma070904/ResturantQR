@@ -34,6 +34,7 @@ const emailReportRoutes = require('./routes/emailReports');
 const { startScheduler } = require('./lib/scheduler');
 const { startSubmitter } = require('./lib/verifactu/service');
 const verifactuRoutes = require('./routes/verifactu');
+const tableRoutes = require('./routes/tables');
 const { requireApiKey } = require('./middleware/apiKeyAuth');
 const { handleMcp } = require('./mcp/http');
 
@@ -117,6 +118,7 @@ app.use('/api/webhooks', integrationRoutes.hook);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/display', displayRoutes);
 app.use('/api/verifactu', verifactuRoutes);
+app.use('/api/tables', tableRoutes);
 
 // MCP over Streamable HTTP — authenticated with an API key (Bearer), tools
 // limited to that key's scopes. Same rate budget as the External API.
